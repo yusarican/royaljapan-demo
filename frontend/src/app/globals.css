@@ -3042,5 +3042,28 @@ footer .footer-sns-item img {
   font-family: hiraginoSansGBW3, sans-serif;
 }
 
+/* Inline Error Messages */
+.inline-error {
+  color: #d32f2f;
+  font-size: 12px;
+  font-family: hiraginoSansGBW3, sans-serif;
+  margin-top: 4px;
+  display: block;
+}
+
+.inline-error-container {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #ffebee;
+  border: 1px solid #d32f2f;
+  border-radius: 4px;
+}
+
+.inline-error-container .inline-error {
+  color: #d32f2f;
+  font-size: 14px;
+  margin: 0;
+}
+
 
 

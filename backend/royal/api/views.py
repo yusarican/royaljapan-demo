@@ -232,16 +232,51 @@ class UpdatePriceView(APIView):
     permission_classes=(IsAuthenticated,)
     def post(self, request):
         user = request.user
-        id = request.data['price_id']
+        id = request.data.get('price_id')
+        updatedata = request.data.get('updatedata')
+        
+        # Validate price_id
+        if not id:
+            return Response({
+                'error': 'price_id is required',
+                'message': '商品IDは必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate updatedata
+        if updatedata is None:
+            return Response({
+                'error': 'updatedata is required',
+                'message': '価格は必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            price_value = float(updatedata)
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'updatedata must be a number',
+                'message': '価格は数値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if price_value <= 0:
+            return Response({
+                'error': 'updatedata must be greater than 0',
+                'message': '価格は0より大きい値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         procut = Product.objects.filter(Q(seller = user) & Q(id = id)).first()
+        if not procut:
+            return Response({
+                'error': 'Product not found',
+                'message': '商品が見つかりませんでした。'
+            }, status=status.HTTP_404_NOT_FOUND)
         
         price = stripe.Price.create(
             product=procut.product_id,
-            unit_amount=request.data['updatedata'],
+            unit_amount=int(price_value),
             currency="JPY",
         )
         procut.price_id = price.id
-        procut.price_sell = request.data['updatedata']
+        procut.price_sell = int(price_value)
         procut.save()
         status_code = status.HTTP_200_OK
         response = {
@@ -425,12 +460,46 @@ class GetProduct(APIView):
 class CreatePaymentIntentView(APIView):
     permission_classes = (AllowAny,)
     def post(self, request):
-        product_id = request.data['product']
-        coupon_code = request.data['coupon']
-        count = int(request.data['count'])
+        product_id = request.data.get('product')
+        coupon_code = request.data.get('coupon', '')
+        count_value = request.data.get('count')
+        
+        # Validate count
+        if count_value is None:
+            return Response({
+                'error': 'count is required',
+                'message': '数量は必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            count = int(count_value)
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'count must be a number',
+                'message': '数量は数値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if count <= 0:
+            return Response({
+                'error': 'count must be greater than 0',
+                'message': '数量は0より大きい値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not product_id:
+            return Response({
+                'error': 'product is required',
+                'message': '商品IDは必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         product = Product.objects.filter(Q(id=product_id)).first()
+        if not product:
+            return Response({
+                'error': 'Product not found',
+                'message': '商品が見つかりませんでした。'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
         seller = product.seller
-        coupon = Coupon.objects.filter(Q(code = coupon_code) & Q(user = seller)).first()
+        coupon = Coupon.objects.filter(Q(code = coupon_code) & Q(user = seller)).first() if coupon_code else None
         price_id = product.price_id
         price = stripe.Price.retrieve(price_id)
         if coupon:
@@ -447,7 +516,11 @@ class CreatePaymentIntentView(APIView):
                 automatic_payment_methods={"enabled": True}
             )
         except Exception as e:
-            print(str(e)) 
+            print(str(e))
+            return Response({
+                'error': 'Payment intent creation failed',
+                'message': '決済処理の作成に失敗しました。'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         status_code = status.HTTP_200_OK
         response = {
             'clientSecret':intent['client_secret'],
@@ -459,17 +532,51 @@ class CreatePaymentIntentView(APIView):
 class CompletePayment(APIView):
     permission_classes = (AllowAny,)
     def post(self, request):
-        product_id = request.data['product']
-        coupon_code = request.data['coupon']
-        name = request.data['name']
-        email = request.data['email']
-        phone = request.data['phone']
-        address = request.data['address']
-        address1 = request.data['address1']
-        count = int(request.data['count'])
+        product_id = request.data.get('product')
+        coupon_code = request.data.get('coupon', '')
+        name = request.data.get('name')
+        email = request.data.get('email')
+        phone = request.data.get('phone')
+        address = request.data.get('address')
+        address1 = request.data.get('address1')
+        count_value = request.data.get('count')
+        
+        # Validate count
+        if count_value is None:
+            return Response({
+                'error': 'count is required',
+                'message': '数量は必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            count = int(count_value)
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'count must be a number',
+                'message': '数量は数値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if count <= 0:
+            return Response({
+                'error': 'count must be greater than 0',
+                'message': '数量は0より大きい値である必要があります。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not product_id:
+            return Response({
+                'error': 'product is required',
+                'message': '商品IDは必須です。'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         product = Product.objects.filter(Q(id=product_id)).first()
+        if not product:
+            return Response({
+                'error': 'Product not found',
+                'message': '商品が見つかりませんでした。'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
         seller = product.seller
-        coupon = Coupon.objects.filter(Q(code = coupon_code) & Q(user = seller)).first()
+        coupon = Coupon.objects.filter(Q(code = coupon_code) & Q(user = seller)).first() if coupon_code else None
         price_id = product.price_id
         price = stripe.Price.retrieve(price_id)
         sell_price = 0

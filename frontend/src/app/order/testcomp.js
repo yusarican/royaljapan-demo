@@ -28,12 +28,35 @@ function Order({}) {
     const [email, setEmail] = useState("");
     // const [option, setOption] = useState({})
     const [price, setPrice] = useState(0);
+    const [countError, setCountError] = useState("");
+
+    const validateCount = (countValue) => {
+        if (!countValue || countValue === '') {
+            return "数量は必須です。";
+        }
+        const numValue = parseInt(countValue);
+        if (isNaN(numValue)) {
+            return "数量は数値である必要があります。";
+        }
+        if (numValue <= 0) {
+            return "数量は0より大きい値である必要があります。";
+        }
+        return null;
+    };
+
     const handleClick = async () =>{
         if(tab==1){
 
             if(name=="" || email==""){
                 return
             }
+            // Validate count before proceeding
+            const countValidationError = validateCount(count);
+            if (countValidationError) {
+                setCountError(countValidationError);
+                return;
+            }
+            setCountError("");
             // else{
             //     localStorage.setItem("customerData", JSON.stringify({
             //         count:count,
@@ -47,6 +70,14 @@ function Order({}) {
             setTab(2)
         }
         if(tab==2){
+            // Validate count before submitting
+            const countValidationError = validateCount(count);
+            if (countValidationError) {
+                setCountError(countValidationError);
+                return;
+            }
+            setCountError("");
+            
             setTab(3)
             // setTrigger(trigger + 1)
             // if (!stripe || !elements) {
@@ -65,11 +96,12 @@ function Order({}) {
             // if(paymentIntent.status=="succeeded")
             // {
             //     setTab(3)
+            const numCount = parseInt(count);
             let data = JSON.stringify({
                 "product":product_id,
                 'user':user_id,
                 'coupon':coupon ? coupon : "",
-                'count':count,
+                'count':numCount,
                 'email':email,
                 'name':name,
                 'phone':phone,
@@ -86,9 +118,11 @@ function Order({}) {
             };
             axios(config)
                 .then(async (response) => {
-
+                    setCountError("");
                 })
                 .catch((err)=>{
+                    const errorMsg = err.response?.data?.message || err.response?.data?.error || "注文の処理に失敗しました。";
+                    setCountError(errorMsg);
                 })
             // }
         }
@@ -176,6 +210,13 @@ function Order({}) {
                 <section className="order">
                     <div className="contain">
                         {tab!==3 && <Detail id={product_id} coupon={coupon} user={user_id} count={count} setPrice={setPrice}/>}
+                        {countError && (
+                            <div className="inline-error-container" style={{ marginBottom: "15px", padding: "10px", backgroundColor: "#ffebee", border: "1px solid #d32f2f", borderRadius: "4px" }}>
+                                <p className="inline-error" style={{ color: "#d32f2f", fontSize: "14px", margin: 0 }}>
+                                    ⚠️ {countError}
+                                </p>
+                            </div>
+                        )}
                         <div className="order-form">
                             {tab==1 && <div className="form-notice">お客様の情報をご入力ください。</div>}
                             <div className="form-step">

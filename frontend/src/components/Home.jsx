@@ -6,14 +6,45 @@ const baseurl = process.env.NEXT_PUBLIC_API_BASE_URL;
 function Home({ userid, username, products, coupons, sellCount, profit }) {
   // const navigate = useNavigate()
   const router = useRouter();
+  const [errors, setErrors] = useState({});
+
+  const validateNumber = (value, fieldName) => {
+    if (!value || value.trim() === '') {
+      return `${fieldName}は必須です。`;
+    }
+    const numValue = parseFloat(value.replace(/,/g, ''));
+    if (isNaN(numValue)) {
+      return `${fieldName}は数値である必要があります。`;
+    }
+    if (numValue <= 0) {
+      return `${fieldName}は0より大きい値である必要があります。`;
+    }
+    return null;
+  };
+
   const handleUpdate = (price_id) => {
     var userData = JSON.parse(localStorage.getItem("userData")) || null;
     var token = userData.token;
     let updatedata = document.getElementById(`price-${price_id}`).value;
+    
+    // Validate input
+    const error = validateNumber(updatedata, '価格');
+    if (error) {
+      setErrors(prev => ({ ...prev, [`price-${price_id}`]: error }));
+      return;
+    }
+    
+    // Clear error if valid
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[`price-${price_id}`];
+      return newErrors;
+    });
 
+    const numValue = parseFloat(updatedata.replace(/,/g, ''));
     let data = JSON.stringify({
       price_id: price_id,
-      updatedata: updatedata,
+      updatedata: numValue,
     });
     let config = {
       method: "post",
@@ -25,8 +56,18 @@ function Home({ userid, username, products, coupons, sellCount, profit }) {
       data: data,
     };
     axios(config)
-      .then(async (response) => {})
-      .catch((err) => {});
+      .then(async (response) => {
+        // Success - clear any errors
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[`price-${price_id}`];
+          return newErrors;
+        });
+      })
+      .catch((err) => {
+        const errorMsg = err.response?.data?.message || err.response?.data?.error || "更新に失敗しました。";
+        setErrors(prev => ({ ...prev, [`price-${price_id}`]: errorMsg }));
+      });
   };
 
   const handleResetCoupon = () => {
@@ -98,7 +139,12 @@ function Home({ userid, username, products, coupons, sellCount, profit }) {
               <div className="product-card-item-unit">円</div>
               <div className="product-card-change">変更可</div>
             </div>
-            <p style={{ color: "red", marginTop: "-25px", textAlign: "right" }}>
+            {errors[`price-${item.id}`] && (
+              <p className="inline-error" style={{ color: "red", marginTop: "-25px", textAlign: "right", fontSize: "12px" }}>
+                {errors[`price-${item.id}`]}
+              </p>
+            )}
+            <p style={{ color: "red", marginTop: errors[`price-${item.id}`] ? "-10px" : "-25px", textAlign: "right" }}>
               数値を変更するときは、カンマを入れずに
               <br />
               入力して「更新」ボタンを押してください。
