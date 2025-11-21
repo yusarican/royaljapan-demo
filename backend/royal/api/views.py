@@ -583,3 +583,15 @@ def random_with_N_digits(n):
     range_start = 10**(n-1)
     range_end = (10**n)-1
     return str(randint(range_start, range_end))
+
+class HealthzView(APIView):
+    permission_classes = (AllowAny,)
+    
+    def get(self, request):
+        # Read version from environment variable, fallback to default
+        version = os.environ.get('APP_VERSION', '1.0.0')
+        response = {
+            'status': 'ok',
+            'version': version
+        }
+        return Response(response, status=status.HTTP_200_OK)
