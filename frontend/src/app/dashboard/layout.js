@@ -31,12 +31,16 @@ export default function Layout({ children }) {
   const [coupons, setCoupons] = useState([]);
   const [sellCount, setSellCount] = useState(0);
   const [profit, setProfit] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     getData();
   }, []);
 
   const getData = () => {
+    setIsLoading(true);
+    setError(null);
     var userData = JSON.parse(localStorage.getItem("userData")) || null;
     var token = userData?.token;
     let config = {
@@ -66,13 +70,15 @@ export default function Layout({ children }) {
           setProfit(profit_tmp);
           setSellCount(sellcount_tmp);
         }
+        setIsLoading(false);
       })
       .catch((err) => {
-        // setError(true);
-        // setErrorMsg("ユーザーが見つかりません。");
-        if (err.response.status == 401) {
+        setIsLoading(false);
+        if (err.response?.status == 401) {
           localStorage.clear();
           window.location.assign("/login");
+        } else {
+          setError(err.response?.data?.message || "データの取得に失敗しました。もう一度お試しください。");
         }
       });
   };
@@ -137,7 +143,19 @@ export default function Layout({ children }) {
             ログアウト ▼
           </div>
         </div>
-        {pathname.includes("/product-stting") ? (
+        {isLoading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p className="loading-text">読み込み中...</p>
+          </div>
+        ) : error ? (
+          <div className="error-container">
+            <p className="error-message">⚠️ {error}</p>
+            <button onClick={getData} className="retry-button">
+              再試行
+            </button>
+          </div>
+        ) : pathname.includes("/product-stting") ? (
           <ProductSetting products={products} />
         ) : pathname.includes("/product-stting") ? (
           <ProductSetting products={products} />

@@ -19,11 +19,16 @@ function TopPage() {
     localStorage.setItem("userID", id);
   }, [id]);
   const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   useEffect(() => {
     getUserData(id);
   }, []);
 
   const getUserData = (id) => {
+    setIsLoading(true);
+    setError(null);
     let config = {
       method: "get",
       url: `${baseurl}/api/user-products/${id}`,
@@ -31,8 +36,12 @@ function TopPage() {
     axios(config)
       .then(async (response) => {
         setProducts(response.data.products);
+        setIsLoading(false);
       })
-      .catch((err) => {});
+      .catch((err) => {
+        setIsLoading(false);
+        setError(err.response?.data?.message || "データの取得に失敗しました。もう一度お試しください。");
+      });
   };
 
   return (
@@ -120,28 +129,46 @@ function TopPage() {
         <section className="list">
           <div className="list-title">全ての商品</div>
           <div className="contain">
-            {products.map((item, index) => (
-              <div className="list-item" key={index}>
-                <div className="list-item-thumb">
-                  <Image width={300} height={300} src={item.image} alt="" />
-                </div>
-                <h3 className="list-item-title">{item.title}</h3>
-                <div className="list-item-package">{item.package}</div>
-                <p className="list-item-content">{item.description}</p>
-                <div className="list-item-price">
-                  <div className="wrap">
-                    <div className="list-item-price-title">特別限定価格</div>
-                    <p>
-                      {parseInt(item.price_sell)
-                        .toLocaleString("en-US")
-                        .toString()}{" "}
-                      <span>(税込)</span>
-                    </p>
-                  </div>
-                  <a href={`/products/${id}/${item.id}`}>今すぐ購入する</a>
-                </div>
+            {isLoading ? (
+              <div className="loading-container">
+                <div className="spinner"></div>
+                <p className="loading-text">読み込み中...</p>
               </div>
-            ))}
+            ) : error ? (
+              <div className="error-container">
+                <p className="error-message">⚠️ {error}</p>
+                <button onClick={() => getUserData(id)} className="retry-button">
+                  再試行
+                </button>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="empty-container">
+                <p>商品が見つかりませんでした。</p>
+              </div>
+            ) : (
+              products.map((item, index) => (
+                <div className="list-item" key={index}>
+                  <div className="list-item-thumb">
+                    <Image width={300} height={300} src={item.image} alt="" />
+                  </div>
+                  <h3 className="list-item-title">{item.title}</h3>
+                  <div className="list-item-package">{item.package}</div>
+                  <p className="list-item-content">{item.description}</p>
+                  <div className="list-item-price">
+                    <div className="wrap">
+                      <div className="list-item-price-title">特別限定価格</div>
+                      <p>
+                        {parseInt(item.price_sell)
+                          .toLocaleString("en-US")
+                          .toString()}{" "}
+                        <span>(税込)</span>
+                      </p>
+                    </div>
+                    <a href={`/products/${id}/${item.id}`}>今すぐ購入する</a>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
         <section className="social">

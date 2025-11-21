@@ -8,6 +8,7 @@ import Sitemap from "@/components/Sitemap";
 // import Detail from '../components/Detail';
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const baseurl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -27,10 +28,16 @@ function ProductDetail({ params }) {
   const [percent, setPercent] = useState(0);
   const [subtitile, setSubTitle] = useState("");
   const [count, setCount] = useState(10);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   useEffect(() => {
     getProductData();
   }, []);
+  
   const getProductData = () => {
+    setIsLoading(true);
+    setError(null);
     let config = {
       method: "get",
       url: `${baseurl}/api/product/${product_id}`,
@@ -46,8 +53,12 @@ function ProductDetail({ params }) {
         setImage2(response.data.image2);
         setImage3(response.data.image3);
         setSubTitle(response.data.package);
+        setIsLoading(false);
       })
-      .catch((err) => {});
+      .catch((err) => {
+        setIsLoading(false);
+        setError(err.response?.data?.message || "商品データの取得に失敗しました。もう一度お試しください。");
+      });
   };
 
   const handleSubmit = () => {
@@ -83,101 +94,117 @@ function ProductDetail({ params }) {
         </section>
         <section className="detail">
           <div className="contain">
-            <div className="wrap">
-              <div className="detail-left">
-                <div className="detail-main">
-                  {image && <img src={image} alt="" />}
-                </div>
-                <div className="detail-subimage">
-                  <div className="detail-subimage-thumb">
-                    {image1 && <img src={image1} alt="" />}
-                  </div>
-                  <div className="detail-subimage-thumb">
-                    {image2 && <img src={image2} alt="" />}
-                  </div>
-                  <div className="detail-subimage-thumb">
-                    {image3 && <img src={image3} alt="" />}
-                  </div>
-                </div>
+            {isLoading ? (
+              <div className="loading-container">
+                <div className="spinner"></div>
+                <p className="loading-text">読み込み中...</p>
               </div>
-              <div className="detail-right">
-                <div className="detail-title">{title}</div>
-                <div className="detail-package">{subtitile}</div>
-                <p className="detail-text pc">{description}</p>
-                <div className="detail-count-sp">
-                  <div className="detail-cost">
-                    <div className="detail-count">
-                      <div style={{ color: "#8F121A", fontSize: "20px" }}>
-                        数量{" "}
-                        <span
-                          style={{
-                            color: "red",
-                            fontSize: "16px",
-                            marginLeft: "10px",
-                          }}
-                        >
-                          ※最低10個〜
-                        </span>
+            ) : error ? (
+              <div className="error-container">
+                <p className="error-message">⚠️ {error}</p>
+                <button onClick={getProductData} className="retry-button">
+                  再試行
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="wrap">
+                  <div className="detail-left">
+                    <div className="detail-main">
+                      {image && <img src={image} alt="" />}
+                    </div>
+                    <div className="detail-subimage">
+                      <div className="detail-subimage-thumb">
+                        {image1 && <img src={image1} alt="" />}
                       </div>
-                      <div className="count-input">
-                        <select
-                          value={count}
-                          onChange={(e) => {
-                            setCount(e.target.value);
-                          }}
-                        >
-                          <option value={10}> 10 </option>
-                          <option value={15}> 15 </option>
-                          <option value={20}> 20 </option>
-                          <option value={25}> 25 </option>
-                          <option value={30}> 30 </option>
-                        </select>
+                      <div className="detail-subimage-thumb">
+                        {image2 && <img src={image2} alt="" />}
+                      </div>
+                      <div className="detail-subimage-thumb">
+                        {image3 && <img src={image3} alt="" />}
                       </div>
                     </div>
-                    <div className="detail-price">
-                      <p>特別限定価格</p>
-                      {percent !== 0 && (
-                        <p className="original">
-                          {parseInt(price_sell * count)
-                            .toLocaleString("en-US")
-                            .toString()}
-                          円 <span>(税込)</span>
-                        </p>
-                      )}
-                      <p>
-                        {(
-                          parseInt(price_sell - (price_sell * percent) / 100) *
-                          count
-                        )
-                          .toLocaleString("en-US")
-                          .toString()}
-                        円 <span>(税込)</span>
-                      </p>
+                  </div>
+                  <div className="detail-right">
+                    <div className="detail-title">{title}</div>
+                    <div className="detail-package">{subtitile}</div>
+                    <p className="detail-text pc">{description}</p>
+                    <div className="detail-count-sp">
+                      <div className="detail-cost">
+                        <div className="detail-count">
+                          <div style={{ color: "#8F121A", fontSize: "20px" }}>
+                            数量{" "}
+                            <span
+                              style={{
+                                color: "red",
+                                fontSize: "16px",
+                                marginLeft: "10px",
+                              }}
+                            >
+                              ※最低10個〜
+                            </span>
+                          </div>
+                          <div className="count-input">
+                            <select
+                              value={count}
+                              onChange={(e) => {
+                                setCount(e.target.value);
+                              }}
+                            >
+                              <option value={10}> 10 </option>
+                              <option value={15}> 15 </option>
+                              <option value={20}> 20 </option>
+                              <option value={25}> 25 </option>
+                              <option value={30}> 30 </option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="detail-price">
+                          <p>特別限定価格</p>
+                          {percent !== 0 && (
+                            <p className="original">
+                              {parseInt(price_sell * count)
+                                .toLocaleString("en-US")
+                                .toString()}
+                              円 <span>(税込)</span>
+                            </p>
+                          )}
+                          <p>
+                            {(
+                              parseInt(price_sell - (price_sell * percent) / 100) *
+                              count
+                            )
+                              .toLocaleString("en-US")
+                              .toString()}
+                            円 <span>(税込)</span>
+                          </p>
+                        </div>
+                      </div>
+                      <a onClick={handleSubmit} className="sp">
+                        今すぐ購入する
+                      </a>
                     </div>
                   </div>
-                  <a onClick={handleSubmit} className="sp">
-                    今すぐ購入する
-                  </a>
                 </div>
-              </div>
-            </div>
-            <div className="form-input">
-              <div className="label">紹介コード</div>
-              <div className="input">
-                <input
-                  value={coupon}
-                  onChange={(e) => setCoupon(e.target.value)}
-                  type="text"
-                  name="address"
-                  placeholder="XXXXXXXXX"
-                />
-              </div>
-            </div>
-            <a onClick={handleSubmit} className="site-link pc">
-              <p>購入する</p>
-              <span></span>
-            </a>
-            <p className="detail-text sp">{description}</p>
+                <div className="form-input">
+                  <div className="label">紹介コード</div>
+                  <div className="input">
+                    <input
+                      value={coupon}
+                      onChange={(e) => setCoupon(e.target.value)}
+                      type="text"
+                      name="address"
+                      placeholder="XXXXXXXXX"
+                    />
+                  </div>
+                </div>
+                <a onClick={handleSubmit} className="site-link pc">
+                  <p>購入する</p>
+                  <span></span>
+                </a>
+                <p className="detail-text sp">{description}</p>
+              </>
+            )}
           </div>
         </section>
       </div>

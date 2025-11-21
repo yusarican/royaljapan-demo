@@ -13,11 +13,15 @@ function Detail({id, user, coupon, count, setPrice}){
     const [image3, setImage3] = useState("");
     const [percent, setPercent] = useState(0);
     const [subtitile, setSubTitle] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(()=>{
         getProductData()       
     },[])
     const getProductData = ()=>{      
+        setIsLoading(true);
+        setError(null);
         let config = {
             method: 'get',
             url: `${baseurl}/api/product/${id}`,
@@ -38,9 +42,11 @@ function Detail({id, user, coupon, count, setPrice}){
             setImage2(response.data.image2);
             setImage3(response.data.image3);
             setSubTitle(response.data.package);
+            setIsLoading(false);
         })
         .catch((err)=>{
-
+            setIsLoading(false);
+            setError(err.response?.data?.message || "商品データの取得に失敗しました。もう一度お試しください。");
         })
     }
 
@@ -77,52 +83,65 @@ function Detail({id, user, coupon, count, setPrice}){
     }
 
     return(
-    
         <div className="wrap">
-            <div className="detail-left pc">
-                <div className="detail-main">
-                    {image && <img src={image} alt=""/>}
+            {isLoading ? (
+                <div className="loading-container">
+                    <div className="spinner"></div>
+                    <p className="loading-text">読み込み中...</p>
                 </div>
-                <div className="detail-subimage">
-                    <div className="detail-subimage-thumb">
-                        {image1 && <img src={image1} alt=""/>}
-                    </div>
-                    <div className="detail-subimage-thumb">
-                        {image2 && <img src={image2} alt=""/>}
-                    </div>
-                    <div className="detail-subimage-thumb">
-                        {image3 && <img src={image3} alt=""/>}
-                    </div>
+            ) : error ? (
+                <div className="error-container">
+                    <p className="error-message">⚠️ {error}</p>
+                    <button onClick={getProductData} className="retry-button">
+                        再試行
+                    </button>
                 </div>
-            </div>
-            <div className="detail-right">
-                <div className="detail-title">
-                    {title}
-                </div>
-                <div className="detail-package">
-                    {subtitile}
-                </div>
-                <p className="detail-text pc">
-                    {description}
-                </p>
-                <div className="detail-count-sp">
-                    <div className="detail-cost">
-                        <div className="detail-count">
-                            <p>数量</p>
-                            <p>{count}</p>
+            ) : (
+                <>
+                    <div className="detail-left pc">
+                        <div className="detail-main">
+                            {image && <img src={image} alt=""/>}
                         </div>
-                        <div className="detail-price">
-                            <p>特別限定価格</p>
-                            {percent !==0 && <p className="original">{parseInt(price_sell * count).toLocaleString('en-US').toString()}円 <span>(税込)</span></p>}
-                            <p>{parseInt((price_sell - price_sell * percent / 100) * count).toLocaleString('en-US').toString()}円 <span>(税込)</span></p>
+                        <div className="detail-subimage">
+                            <div className="detail-subimage-thumb">
+                                {image1 && <img src={image1} alt=""/>}
+                            </div>
+                            <div className="detail-subimage-thumb">
+                                {image2 && <img src={image2} alt=""/>}
+                            </div>
+                            <div className="detail-subimage-thumb">
+                                {image3 && <img src={image3} alt=""/>}
+                            </div>
                         </div>
                     </div>
-                    {/* <a href={`/order/${user}/${id}/${coupon}`} className="sp">今すぐ購入する</a> */}
-                </div>
-            </div>
-            
+                    <div className="detail-right">
+                        <div className="detail-title">
+                            {title}
+                        </div>
+                        <div className="detail-package">
+                            {subtitile}
+                        </div>
+                        <p className="detail-text pc">
+                            {description}
+                        </p>
+                        <div className="detail-count-sp">
+                            <div className="detail-cost">
+                                <div className="detail-count">
+                                    <p>数量</p>
+                                    <p>{count}</p>
+                                </div>
+                                <div className="detail-price">
+                                    <p>特別限定価格</p>
+                                    {percent !==0 && <p className="original">{parseInt(price_sell * count).toLocaleString('en-US').toString()}円 <span>(税込)</span></p>}
+                                    <p>{parseInt((price_sell - price_sell * percent / 100) * count).toLocaleString('en-US').toString()}円 <span>(税込)</span></p>
+                                </div>
+                            </div>
+                            {/* <a href={`/order/${user}/${id}/${coupon}`} className="sp">今すぐ購入する</a> */}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
-               
     )
 }
 
